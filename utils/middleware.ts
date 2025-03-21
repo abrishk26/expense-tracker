@@ -38,3 +38,36 @@ export default async function middleware(req: NextRequest) {
 export const config = {
   matcher: ['/((?!api|_next/static|_next/image|.*\\.png$).*)'],
 }
+
+// import { NextResponse } from 'next/server';
+// import type { NextRequest } from 'next/server';
+
+// export async function middleware(request: NextRequest) {
+//   // Get the `supabase_session` cookie
+//   const supabaseSession = request.cookies.get('supabase_session')?.value;
+
+//   // Define protected routes
+//   const protectedRoutes = ['/dashboard']; // Add more routes if needed
+
+//   // Get the current path
+//   const currentPath = request.nextUrl.pathname;
+
+//   // Check if the user is trying to access a protected route
+//   if (protectedRoutes.includes(currentPath)) {
+//     // Redirect to / if the `supabase_session` cookie does not exist
+//     if (!supabaseSession) {
+//       return NextResponse.redirect(new URL('/', request.url));
+//     }
+//   }
+
+//   // Allow the request to proceed if no redirection is needed
+//   return NextResponse.next();
+// }
+
+// // Specify the routes to run the middleware on
+// export const config = {
+//   matcher: [
+//     '/dashboard', // Protect the dashboard route
+//     // Add more routes as needed
+//   ],
+// };
