@@ -73,8 +73,8 @@ Before you begin, ensure you have the following installed:
 
 1. **Clone the Repository**:
    ```bash
-   git clone https://github.com/your-username/your-project-name.git
-   cd your-project-name
+   git clone https://github.com/your-username/expense-tracker-app.git
+   cd expense-tracker-app
 2. **Install Dependencies**:
    ```npm install```
 3. **Create a .env.local file and add the following environment variables**:
