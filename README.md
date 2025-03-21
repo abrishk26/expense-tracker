@@ -69,11 +69,11 @@ Before you begin, ensure you have the following installed:
    git clone https://github.com/your-username/your-project-name.git
    cd your-project-name
 2. **Install Dependencies**:
-   ```npm install``
+   ```npm install```
 3. **Create a .env.local file and add the following environment variables**:
    ```
    NEXT_PUBLIC_SUPABASE_URL=https://avlripcdwwcrbmnbnrbn.supabase.co
    NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF2bHJpcGNkd3djcmJtbmJucmJuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDI0NzI1MzksImV4cCI6MjA1ODA0ODUzOX0.KDHvLR0De9ce_nPQQ1iySFettJUFmoEZyaG_NMpdidk
    ```
 4. **Run the development server**:
-   ```npm run dev``
+   ```npm run dev```
