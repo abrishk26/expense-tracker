@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Pie, Bar } from "react-chartjs-2";
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement } from "chart.js";
 import { supabase } from "@/lib/supabaseClient";
+import Cookies from "js-cookie"; // Import js-cookie
 
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement);
 
@@ -19,12 +20,40 @@ export default function Dashboard() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Function to extract user_id from the supabase_session cookie
+  const getUserIdFromSession = () => {
+    const sessionCookie = Cookies.get("supabase_session");
+    if (!sessionCookie) {
+      throw new Error("No session found. Please log in.");
+    }
+
+    try {
+      const sessionData = JSON.parse(sessionCookie);
+      return sessionData.user?.id;
+    } catch (error) {
+      throw new Error("Invalid session data.");
+    }
+  };
+
   useEffect(() => {
     const fetchExpenses = async () => {
-      const { data, error } = await supabase.from("expenses").select("*");
-      if (error) console.error(error);
-      else setExpenses(data || []);
-      setLoading(false);
+      try {
+        const userId = getUserIdFromSession();
+        const { data, error } = await supabase
+          .from("expenses")
+          .select("*")
+          .eq("user_id", userId);
+
+        if (error) {
+          console.error(error);
+        } else {
+          setExpenses(data || []);
+        }
+      } catch (error) {
+        console.error(error);
+      } finally {
+        setLoading(false);
+      }
     };
 
     fetchExpenses();

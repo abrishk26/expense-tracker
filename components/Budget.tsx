@@ -1,3 +1,5 @@
+"use client";
+
 import { useEffect, useState } from "react";
 import Cookies from "js-cookie";
 import { supabase } from "@/lib/supabaseClient";
@@ -31,46 +33,76 @@ export default function Budget() {
   const [editingBudgetGoal, setEditingBudgetGoal] = useState<BudgetGoal | null>(null);
   const [error, setError] = useState("");
 
+  // Function to extract user_id from the supabase_session cookie
+  const getUserIdFromSession = () => {
+    const sessionCookie = Cookies.get("supabase_session");
+    if (!sessionCookie) {
+      throw new Error("No session found. Please log in.");
+    }
+
+    try {
+      const sessionData = JSON.parse(sessionCookie);
+      return sessionData.user?.id;
+    } catch (error) {
+      throw new Error("Invalid session data.");
+    }
+  };
+
   // Fetch budget goals
   const fetchBudgetGoals = async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from("budget_goals")
-      .select("*")
-      .order("year", { ascending: false });
+    try {
+      const userId = getUserIdFromSession();
+      const { data, error } = await supabase
+        .from("budget_goals")
+        .select("*")
+        .eq("user_id", userId)
+        .order("year", { ascending: false });
 
-    if (error) {
+      if (error) {
+        console.error(error);
+        setError("Failed to load budget goals.");
+      } else {
+        // Calculate remaining amount for each budget goal
+        const goalsWithRemainingAmount = await Promise.all(
+          (data || []).map(async (goal: BudgetGoal) => {
+            const totalExpense = await calculateTotalExpenses(goal.year, goal.month, goal.category);
+            const remainingAmount = goal.goal_amount - totalExpense;
+            return { ...goal, remaining_amount: remainingAmount };
+          })
+        );
+        setBudgetGoals(goalsWithRemainingAmount);
+      }
+    } catch (error) {
       console.error(error);
       setError("Failed to load budget goals.");
-    } else {
-      // Calculate remaining amount for each budget goal
-      const goalsWithRemainingAmount = await Promise.all(
-        (data || []).map(async (goal: BudgetGoal) => {
-          const totalExpense = await calculateTotalExpenses(goal.year, goal.month, goal.category);
-          const remainingAmount = goal.goal_amount - totalExpense;
-          return { ...goal, remaining_amount: remainingAmount };
-        })
-      );
-      setBudgetGoals(goalsWithRemainingAmount);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   // Calculate total expenses for a given category, year, and month
   const calculateTotalExpenses = async (year: number, month: number, category: string) => {
-    const { data, error } = await supabase
-      .from("expenses")
-      .select("amount")
-      .eq("category", category)
-      .gte("date", `${year}-${String(month).padStart(2, "0")}-01`) // Start of the month
-      .lt("date", `${year}-${String(month).padStart(2, "0")}-31`); // Start of the next month
-  
-    if (error) {
-      console.error("Error fetching expenses:", error);
+    try {
+      const userId = getUserIdFromSession();
+      const { data, error } = await supabase
+        .from("expenses")
+        .select("amount")
+        .eq("user_id", userId)
+        .eq("category", category)
+        .gte("date", `${year}-${String(month).padStart(2, "0")}-01`) // Start of the month
+        .lt("date", `${year}-${String(month).padStart(2, "0")}-31`); // End of the month
+
+      if (error) {
+        console.error("Error fetching expenses:", error);
+        return 0;
+      }
+
+      return (data || []).reduce((total, expense) => total + expense.amount, 0);
+    } catch (error) {
+      console.error("Error calculating total expenses:", error);
       return 0;
     }
-  
-    return (data || []).reduce((total, expense) => total + expense.amount, 0);
   };
 
   // Fetch budget goals on component mount
@@ -94,19 +126,7 @@ export default function Budget() {
     e.preventDefault();
 
     try {
-      const sessionCookie = Cookies.get("supabase_session");
-      if (!sessionCookie) {
-        throw new Error("No session found. Please log in.");
-      }
-
-      let sessionData;
-      try {
-        sessionData = JSON.parse(sessionCookie);
-      } catch (parseError) {
-        throw new Error("Invalid session data.");
-      }
-
-      const userId = sessionData.user?.id;
+      const userId = getUserIdFromSession();
       if (!userId) {
         throw new Error("User ID not found in session.");
       }
@@ -114,38 +134,59 @@ export default function Budget() {
       const isValid = validateDate(newBudgetGoal.year, newBudgetGoal.month);
       if (!isValid) return;
 
-      // Check if a budget goal already exists for the same category, year, and month
-      const { data: existingGoals, error: fetchError } = await supabase
-        .from("budget_goals")
-        .select("id")
-        .eq("user_id", userId)
-        .eq("category", newBudgetGoal.category)
-        .eq("year", newBudgetGoal.year)
-        .eq("month", newBudgetGoal.month);
-
-      if (fetchError) {
-        throw new Error("Error checking for existing budget goals.");
-      }
-
-      if (existingGoals && existingGoals.length > 0) {
-        setError("A budget goal already exists for this category, year, and month.");
-        return;
-      }
-
-      const { error } = await supabase
-        .from("budget_goals")
-        .upsert([
-          {
-            user_id: userId,
+      if (editingBudgetGoal) {
+        // Update existing budget goal
+        const { error } = await supabase
+          .from("budget_goals")
+          .update({
             year: newBudgetGoal.year,
             month: newBudgetGoal.month,
             goal_amount: newBudgetGoal.goal_amount,
             category: newBudgetGoal.category,
-          },
-        ]);
+          })
+          .eq("id", editingBudgetGoal.id)
+          .eq("user_id", userId);
 
-      if (error) {
-        throw new Error(error.message);
+        if (error) {
+          throw new Error(error.message);
+        }
+
+        setEditingBudgetGoal(null);
+      } else {
+        // Check if a budget goal already exists for the same category, year, and month
+        const { data: existingGoals, error: fetchError } = await supabase
+          .from("budget_goals")
+          .select("id")
+          .eq("user_id", userId)
+          .eq("category", newBudgetGoal.category)
+          .eq("year", newBudgetGoal.year)
+          .eq("month", newBudgetGoal.month);
+
+        if (fetchError) {
+          throw new Error("Error checking for existing budget goals.");
+        }
+
+        if (existingGoals && existingGoals.length > 0) {
+          setError("A budget goal already exists for this category, year, and month.");
+          return;
+        }
+
+        // Insert new budget goal
+        const { error } = await supabase
+          .from("budget_goals")
+          .insert([
+            {
+              user_id: userId,
+              year: newBudgetGoal.year,
+              month: newBudgetGoal.month,
+              goal_amount: newBudgetGoal.goal_amount,
+              category: newBudgetGoal.category,
+            },
+          ]);
+
+        if (error) {
+          throw new Error(error.message);
+        }
       }
 
       setNewBudgetGoal({
@@ -180,12 +221,18 @@ export default function Budget() {
   const handleDeleteBudgetGoal = async (id: string) => {
     if (!confirm("Are you sure you want to delete this budget goal?")) return;
 
-    const { error } = await supabase.from("budget_goals").delete().eq("id", id);
-    if (error) {
+    try {
+      const userId = getUserIdFromSession();
+      const { error } = await supabase.from("budget_goals").delete().eq("id", id).eq("user_id", userId);
+      if (error) {
+        setError("Failed to delete budget goal.");
+        console.error(error);
+      } else {
+        setBudgetGoals(budgetGoals.filter((goal) => goal.id !== id));
+      }
+    } catch (error) {
+      console.error("Error deleting budget goal:", error);
       setError("Failed to delete budget goal.");
-      console.error(error);
-    } else {
-      setBudgetGoals(budgetGoals.filter((goal) => goal.id !== id));
     }
   };
 

@@ -27,21 +27,6 @@ export default function Expenses() {
     const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
     const [error, setError] = useState("");
 
-    // Fetch expenses on component mount
-    useEffect(() => {
-        const fetchExpenses = async () => {
-            const { data, error } = await supabase.from("expenses").select("*").order("date", { ascending: false });
-            if (error) {
-                console.error(error);
-                setError("Failed to load expenses.");
-            } else {
-                setExpenses(data || []);
-            }
-            setLoading(false);
-        };
-        fetchExpenses();
-    }, []);
-
     // Function to extract user_id from the supabase_session cookie
     const getUserIdFromSession = () => {
         const sessionCookie = Cookies.get("supabase_session");
@@ -57,62 +42,101 @@ export default function Expenses() {
         }
     };
 
-    const checkBudgetExists = async (month: number, year: number, category: string) => {
-        console.log(`Checking budget for month: ${month}, year: ${year}`); // Debug log
-        const { data, error } = await supabase
-            .from("budget_goals")
-            .select("goal_amount")
-            .eq("year", year)
-            .eq("month", month)
-            .eq("category", category);
+    // Fetch expenses on component mount
+    useEffect(() => {
+        const fetchExpenses = async () => {
+            try {
+                const userId = getUserIdFromSession();
+                const { data, error } = await supabase
+                    .from("expenses")
+                    .select("*")
+                    .eq("user_id", userId)
+                    .order("date", { ascending: false });
 
-        if (error || !data || data.length === 0) {
-            console.error("Budget fetch error:", error); // Debug log
-            setError("No budget set for this month.");
+                if (error) {
+                    console.error(error);
+                    setError("Failed to load expenses.");
+                } else {
+                    setExpenses(data || []);
+                }
+            } catch (error) {
+                console.error(error);
+                setError("Failed to load expenses.");
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchExpenses();
+    }, []);
+
+    const checkBudgetExists = async (month: number, year: number, category: string) => {
+        try {
+            const userId = getUserIdFromSession();
+            const { data, error } = await supabase
+                .from("budget_goals")
+                .select("goal_amount")
+                .eq("year", year)
+                .eq("month", month)
+                .eq("category", category)
+                .eq("user_id", userId);
+
+            if (error || !data || data.length === 0) {
+                console.error("Budget fetch error:", error);
+                setError("No budget set for this month.");
+                return false;
+            }
+            if (data.length > 1) {
+                console.warn("Multiple budget entries found, using the first one.");
+            }
+            return true;
+        } catch (error) {
+            console.error("Error checking budget:", error);
+            setError("Failed to check budget.");
             return false;
         }
-        if (data.length > 1) {
-            console.warn("Multiple budget entries found, using the first one."); // Debug log
-        }
-        console.log("Budget data:", data[0]); // Debug log
-        return true;
     };
 
     const checkBudgetLimit = async (month: number, year: number, newAmount: number, category: string) => {
-        console.log(`Checking budget limit for month: ${month}, year: ${year}, newAmount: ${newAmount}`); // Debug log
-        const { data: budgetData, error: budgetError } = await supabase
-            .from("budget_goals")
-            .select("goal_amount")
-            .eq("year", year)
-            .eq("month", month)
-            .eq("category", category);
+        try {
+            const userId = getUserIdFromSession();
+            const { data: budgetData, error: budgetError } = await supabase
+                .from("budget_goals")
+                .select("goal_amount")
+                .eq("year", year)
+                .eq("month", month)
+                .eq("category", category)
+                .eq("user_id", userId);
 
-        if (budgetError || !budgetData || budgetData.length === 0) {
-            console.error("Budget fetch error:", budgetError); // Debug log
+            if (budgetError || !budgetData || budgetData.length === 0) {
+                console.error("Budget fetch error:", budgetError);
+                return false;
+            }
+            if (budgetData.length > 1) {
+                console.warn("Multiple budget entries found, using the first one.");
+            }
+
+            const startDate = `${year}-${String(month).padStart(2, "0")}-01`;
+            const endDate = format(endOfMonth(new Date(year, month - 1)), "yyyy-MM-dd");
+
+            const { data: totalExpenses, error: expensesError } = await supabase
+                .from("expenses")
+                .select("amount")
+                .eq("user_id", userId)
+                .gte("date", startDate)
+                .lte("date", endDate);
+
+            if (expensesError) {
+                console.error("Expenses fetch error:", expensesError);
+                return false;
+            }
+
+            const currentTotal = totalExpenses ? totalExpenses.reduce((sum, exp) => sum + exp.amount, 0) : 0;
+            return budgetData[0].goal_amount >= currentTotal + newAmount;
+        } catch (error) {
+            console.error("Error checking budget limit:", error);
+            setError("Failed to check budget limit.");
             return false;
         }
-        if (budgetData.length > 1) {
-            console.warn("Multiple budget entries found, using the first one."); // Debug log
-        }
-
-        const startDate = `${year}-${String(month).padStart(2, "0")}-01`;
-        const endDate = format(endOfMonth(new Date(year, month - 1)), "yyyy-MM-dd");
-
-        console.log(`Fetching expenses between ${startDate} and ${endDate}`); // Debug log
-        const { data: totalExpenses, error: expensesError } = await supabase
-            .from("expenses")
-            .select("amount")
-            .gte("date", startDate)
-            .lte("date", endDate);
-
-        if (expensesError) {
-            console.error("Expenses fetch error:", expensesError); // Debug log
-            return false;
-        }
-
-        const currentTotal = totalExpenses ? totalExpenses.reduce((sum, exp) => sum + exp.amount, 0) : 0;
-        console.log(`Current total expenses: ${currentTotal}, Budget amount: ${budgetData[0].goal_amount}`); // Debug log
-        return budgetData[0].goal_amount >= currentTotal + newAmount;
     };
 
     const handleSubmitExpense = async (e: React.FormEvent) => {
@@ -120,7 +144,6 @@ export default function Expenses() {
         setError(""); // Reset error before submitting
 
         try {
-            // Extract user_id from the session cookie
             const userId = getUserIdFromSession();
             if (!userId) {
                 setError("User is not authenticated.");
@@ -131,21 +154,15 @@ export default function Expenses() {
             const expenseMonth = expenseDate.getMonth() + 1; // Month is 1-based (1 = January)
             const expenseYear = expenseDate.getFullYear();
 
-            console.log("Expense month:", expenseMonth); // Debug log
-            console.log("Expense year:", expenseYear); // Debug log
-
-            // Check if a budget exists for the specified month
             const budgetExists = await checkBudgetExists(expenseMonth, expenseYear, newExpense.category);
             if (!budgetExists) return;
 
-            // Check if the expense exceeds the budget
             const isValid = await checkBudgetLimit(expenseMonth, expenseYear, newExpense.amount, newExpense.category);
             if (!isValid) {
                 setError("Warning: This expense exceeds the budget for this month, but it will be added.");
             }
 
             if (editingExpense) {
-                // Update existing expense
                 const { data, error } = await supabase
                     .from("expenses")
                     .update({ ...newExpense, user_id: userId })
@@ -160,7 +177,6 @@ export default function Expenses() {
                     setEditingExpense(null);
                 }
             } else {
-                // Add new expense
                 const { data, error } = await supabase
                     .from("expenses")
                     .insert([{ ...newExpense, user_id: userId }])
@@ -174,7 +190,6 @@ export default function Expenses() {
                 }
             }
 
-            // Reset form
             setNewExpense({ date: "", description: "", amount: 0, category: "Food" });
         } catch (error) {
             console.error("Error setting expense:", error);
@@ -185,7 +200,6 @@ export default function Expenses() {
             }
         }
     };
-
 
     const handleEditExpense = (expense: Expense) => {
         setEditingExpense(expense);
@@ -200,12 +214,18 @@ export default function Expenses() {
     const handleDeleteExpense = async (id: string) => {
         if (!confirm("Are you sure you want to delete this expense?")) return;
 
-        const { error } = await supabase.from("expenses").delete().eq("id", id);
-        if (error) {
+        try {
+            const userId = getUserIdFromSession();
+            const { error } = await supabase.from("expenses").delete().eq("id", id).eq("user_id", userId);
+            if (error) {
+                setError("Failed to delete expense.");
+                console.error(error);
+            } else {
+                setExpenses(expenses.filter((expense) => expense.id !== id));
+            }
+        } catch (error) {
+            console.error("Error deleting expense:", error);
             setError("Failed to delete expense.");
-            console.error(error);
-        } else {
-            setExpenses(expenses.filter((expense) => expense.id !== id));
         }
     };
 
