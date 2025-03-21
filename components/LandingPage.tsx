@@ -8,8 +8,18 @@ export default function LandingPage() {
         <div className="container mx-auto flex justify-between items-center">
           <Link href="/" className="text-xl font-bold">Expense Tracker</Link>
           <div className="flex items-center space-x-4">
-            <Link href="/login" className="hover:text-blue-200">Login</Link>
-            <Link href="/signup" className="hover:text-blue-200">Signup</Link>
+            <Link
+              href="/login"
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg border border-white shadow-md hover:bg-blue-700 transition-colors duration-300"
+            >
+              Login
+            </Link>
+            <Link
+              href="/signup"
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg border border-white shadow-md hover:bg-blue-700 transition-colors duration-300"
+            >
+              Signup
+            </Link>
           </div>
         </div>
       </nav>
@@ -22,10 +32,10 @@ export default function LandingPage() {
             Take control of your finances with our easy-to-use expense tracker. Set budget goals, monitor spending, and save more every month.
           </p>
           <div className="space-x-4">
-            <Link href="/login" className="bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700 text-lg">
+            <Link href="/login" className="bg-blue-600 text-white px-8 py-3 rounded-lg border border-white shadow-lg hover:bg-blue-700 text-lg">
               Get Started
             </Link>
-            <Link href="/signup" className="bg-green-600 text-white px-8 py-3 rounded-lg hover:bg-green-700 text-lg">
+            <Link href="/signup" className="bg-blue-600 text-white px-8 py-3 rounded-lg border border-white shadow-lg hover:bg-blue-700 text-lg">
               Sign Up
             </Link>
           </div>
