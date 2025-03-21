@@ -61,17 +61,18 @@ export default function Sidebar({ activeSection, setActiveSection, children }: S
                 {isOpen && <span className="ml-2">Budget</span>}
               </button>
             </li>
+            {/* Logout Button */}
+            <li>
+              <button
+                onClick={handleLogout}
+                className={`w-full flex items-center p-4 hover:bg-blue-700 ${isOpen ? "justify-start" : "justify-center"}`}
+              >
+                <FaSignOutAlt className="w-6 h-6" />
+                {isOpen && <span className="ml-2">Logout</span>}
+              </button>
+            </li>
           </ul>
         </nav>
-        <div className="absolute bottom-0 w-full p-4">
-          <button
-            onClick={handleLogout}
-            className="w-full flex items-center p-4 hover:bg-blue-700"
-          >
-            <FaSignOutAlt className="w-6 h-6" />
-            {isOpen && <span className="ml-2">Logout</span>}
-          </button>
-        </div>
       </div>
 
       {/* Content Area */}
