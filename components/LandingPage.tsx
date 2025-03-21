@@ -114,7 +114,7 @@ export default function LandingPage() {
           {/* Copyright */}
           <div className="border-t border-blue-500 mt-8 pt-8 text-center">
             <p className="text-gray-200">
-              &copy; 2023 Expense Tracker. All rights reserved.
+              &copy; 2025 Expense Tracker. All rights reserved.
             </p>
           </div>
         </div>

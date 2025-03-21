@@ -2,6 +2,8 @@
 
 The **Expense Tracker** is a web application I developed as part of my internship application for **Shega**. This project demonstrates my ability to build a full-stack application using modern technologies like **Next.js** and **Supabase**. It showcases my skills in frontend development, backend integration, and database management, all of which are essential for the role I’m applying for.
 
+**Live Demo:** [View the live demo of the project here](https://expense-tracker-app-sjyx.vercel.app/)
+
 ---
 
 ## Project Overview
@@ -34,22 +36,27 @@ This app is designed to help users manage their finances effectively by:
 
 ## How It Works
 
-1. **Sign Up or Log In**: Users can create an account or log in to their existing one.
-2. **Add Expenses**: Users can log expenses with details like amount, category, and date.
-3. **Set Budgets**: Users can define monthly budget goals for different categories.
-4. **Track Spending**: Users can view their spending trends and budget progress on the dashboard.
+1. **Sign Up or Log In**:
+   - Users can create a new account or log in to an existing one.
+   - After signing up, an activation email is sent to the provided email address. **Please wait a few minutes for the email to arrive**.
+   - Once the account is activated, users can log in and access their dashboard.
 
+2. **Add Expenses**:
+   - Users can log expenses with details such as amount, category, and date.
+   - **Note**: Expenses can only be added if a budget for the corresponding category exists.
+
+3. **Set Budgets**:
+   - Users can define monthly budget goals for different categories.
+   - **Note**: A budget cannot be added again for the same year, month, and category combination.
+
+4. **Track Spending**:
+   - Users can view their spending trends and budget progress on the dashboard.
+   - The dashboard provides a clear representation of expenses and budgets.
+
+### Additional Notes:
+- After a successful login, users remain logged in until they manually log out.
+- **Live Demo**: [View the live demo of the project here](https://expense-tracker-app-sjyx.vercel.app/).
 ---
-
----
-
-## Contact
-
-If you have any questions or would like to discuss this project further, feel free to reach out:
-
-- **Email**: [your-email@example.com](mailto:your-email@example.com)
-- **GitHub**: [your-username](https://github.com/your-username)
-- **LinkedIn**: [Your LinkedIn Profile](https://linkedin.com/in/your-profile)
 
 ## Getting Started
 
@@ -77,3 +84,11 @@ Before you begin, ensure you have the following installed:
    ```
 4. **Run the development server**:
    ```npm run dev```
+
+## Contact
+
+If you have any questions or would like to discuss this project further, feel free to reach out:
+
+- **Email**: [abrehmakassa19@gmail.com]
+- **GitHub**: [abrishk26](https://github.com/abrishk26)
+- **LinkedIn**: [Your LinkedIn Profile](https://linkedin.com/in/your-profile)
